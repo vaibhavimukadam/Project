@@ -1,0 +1,270 @@
+---
+title: "HR Analytics: Job Change of Data Scientists"
+author: "Vaibhavi Mukadam, Harshal Utekar, Vallabh Sawant"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Importing the data:
+
+```{r}
+job <- read.csv("C:\\Users\\Vaibhavi Mukadam\\OneDrive - Rutgers University\\Desktop\\Rutgers Course work\\Spring 2021\\Data Analysis and Decision Making\\Project\\aug_train.csv")
+library(ggplot2)
+library(gridExtra)
+library(DAAG)
+```
+
+
+### Exploratory Data Analysis
+
+Structure of Data:
+```{r}
+str(job)
+```
+#### Checking for NA's to avoid Null Issues.
+```{r}
+table(is.na(job))
+job <- na.omit(job)
+table(is.na(job))
+```
+
+#### Modifying the variables:
+
+```{r}
+job$experience <- gsub('>20','21',job$experience)
+job$experience <- gsub('<1','0',job$experience)
+job$last_new_job <- gsub('>4','5',job$last_new_job)
+job$last_new_job <- gsub('never','0',job$last_new_job)
+job$last_new_job <- as.integer(job$last_new_job)
+job$experience <- as.integer(job$experience)
+```
+
+#### Converting categorical variables into factors:
+
+```{r}
+job$gender <- factor(job$gender,levels = c("Male","Female","Other"),labels = c("Male","Female","Other"))
+job$relevent_experience <- factor(job$relevent_experience,levels = c("No relevent experience","Has relevent experience"),labels = c("No experience","Has Experience"))
+job$enrolled_university <- factor(job$enrolled_university,levels = c("no_enrollment","Part time course","Full time course"),labels = c("Not enrolled","Part time","Full time"))
+job$education_level <- factor(job$education_level,levels = c("Graduate","Masters","Phd"),labels = c("Graduate","Masters","PhD"))
+job$major_discipline <- factor(job$major_discipline,levels = c("Arts","Business Degree","Humanities","STEM","Other","No Major"),labels = c("Arts","Business Degree","Humanities","STEM","Other","No Major"))
+job$company_size <- factor(job$company_size,levels = c("<10"," 10  - 49","50-99","100-500","500-999","1000-4999","5000-9999","10000+"),labels = c("<10","10-49","50-99","100-500","500-999","1000-4999","5000-9999","10000+"))
+job$company_type <- factor(job$company_type,levels = c("Early Stage Startup","Funded Startup","NGO","Public Sector","Pvt Ltd","Other"),labels = c("Early startup","Funded startup","NGO","Public","Private","Other"))
+job$target <- factor(job$target,levels = c(0,1),labels = c("Not looking to switch","Looking for switch"))
+```
+
+#### Final Structure of Dataset:
+```{r}
+str(job)
+```
+
+#### Basic Summary of the whole Data:
+
+```{r}
+summary(job)
+```
+#### We can eliminate the columns enrollee_id and city as they do not play a key role in either exploring the data visually or act as an independent variable.
+
+```{r}
+job <- subset(job,select = -c(1:2))
+str(job)
+```
+Summary of the data:
+
+```{r}
+summary(job)
+```
+
+#### Outlier Detection and Removal
+
+Based on the data available, we have 4 independent variables that are numeric:
+      1. city_development_index
+      2. experience
+      3. last_new_job
+      4. training_hours
+      
+Let's put boxplots and QQ-plots to identify the no. of outliers for each of the variables.
+
+###### City_development_index
+```{r,fig.width=8,fig.height=6}
+c1 <- ggplot(job,aes(y=city_development_index))+geom_boxplot()
+c2 <- ggplot(job,aes(sample=city_development_index))+geom_qq()+geom_qq_line()
+grid.arrange(c1,c2)
+o1 <- boxplot(job$city_development_index,plot=F)$out
+job <- job[-which(job$city_development_index %in% o1),]
+c3 <- ggplot(job,aes(y=city_development_index))+geom_boxplot()
+c4 <- ggplot(job,aes(sample=city_development_index))+geom_qq()+geom_qq_line()
+grid.arrange(c1,c2,c3,c4,nrow=2,ncol=2)
+```
+
+###### Experience
+```{r,fig.width=8,fig.height=6}
+e1 <- ggplot(job,aes(y=experience))+geom_boxplot()
+e2 <- ggplot(job,aes(sample=experience))+geom_qq()+geom_qq_line()
+grid.arrange(e1,e2)
+```
+
+###### Last_New_Job
+
+```{r,fig.width=8,fig.height=6}
+l1 <- ggplot(job,aes(y=last_new_job))+geom_boxplot()
+l2 <- ggplot(job,aes(sample=last_new_job))+geom_qq()+geom_qq_line()
+grid.arrange(l1,l2)
+```
+
+###### Training_Hours
+
+```{r,fig.width=8,fig.height=6}
+t1 <- ggplot(job,aes(y=training_hours))+geom_boxplot()
+t2 <- ggplot(job,aes(sample=training_hours))+geom_qq()+geom_qq_line()
+grid.arrange(t1,t2)
+o2 <- boxplot(job$training_hours,plot=F)$out
+job <- job[-which(job$training_hours %in% o2),]
+t3 <- ggplot(job,aes(y=training_hours))+geom_boxplot()
+t4 <- ggplot(job,aes(sample=training_hours))+geom_qq()+geom_qq_line()
+grid.arrange(t1,t2,t3,t4,nrow=2,ncol=2)
+```
+
+Summary of data after Outlier Removal:
+```{r}
+summary(job)
+```
+
+#### Visual Representation.
+
+#### 1. Target data depicting how many employees are looking to switch.
+```{r}
+ggplot(job, aes(x="", y="",fill=target)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0)+labs(title="Target data depicting how many employees are looking to switch")
+```
+
+#### 2. Job switch classification based on Gender.
+
+```{r}
+ggplot(job,aes(x=gender,fill=target))+geom_bar()+labs(title = "Job switch classification based on Gender")
+```
+
+#### 3. Job switch classification based on Relevent Experience.
+
+```{r}
+ggplot(job,aes(x=relevent_experience,fill=target))+geom_bar()+labs(title="Job switch classification based on Relevent Experience")
+```
+
+#### 4. Job switch Classification based on Education Level and current enrollment status of the employee.
+
+Not enrolled = full time job.
+Part time = part time enrolled with job.
+Full time = Full time enrolled along with job.
+
+
+```{r}
+ggplot(job,aes(x=education_level,fill=target))+facet_wrap(~enrolled_university)+geom_bar()+labs(title = "Job switch Classification based on Education Level & current enrollment status")
+```
+
+#### 5. Job switch classification based on Study Major.
+
+```{r}
+ggplot(job,aes(x=major_discipline,fill=target))+geom_bar()+labs(title = "Job switch classification based on Study Major")
+```
+
+#### 6. Job switch classification based on the size of company employee currently works in.
+
+```{r}
+ggplot(job,aes(x=company_size,fill=target))+geom_bar()+labs(title = "Job switch classification based on the size of company employee currently works")
+```
+
+#### 7. Boxplot depicting the employees looking for job switch based on the city development index.
+
+```{r}
+ggplot(job,aes(x=target,y=city_development_index))+geom_boxplot()+labs(title = "Boxplot:employees looking for job switch based on the city development index")
+```
+
+#### 8. Job switch classification based on the employee's experience and the year they switched their last job.
+
+```{r,fig.width=12,fig.height=10}
+ggplot(job,aes(x=experience,fill=target))+facet_wrap(~last_new_job)+geom_histogram(binwidth = 5,color='black')+labs(title = "Job switch classification:employee's experience with last new job")
+```
+
+#### 9. Job switch classification based on last job change.
+
+```{r}
+ggplot(job,aes(x=last_new_job,fill=target))+geom_bar()+labs(title = "Job switch classification based on last job change")
+```
+
+### Decision Modeling:
+
+#### Model 1- Generalized Linear Model - Binomial Distribution
+
+```{r}
+glm.model <- glm(target ~ city_development_index + experience + last_new_job + training_hours, data=job, family ='binomial')
+summary(glm.model)
+```
+```{r}
+plot(glm.model)
+```
+
+##### Cross-validation of GLM to determine the accuracy of the model.
+```{r}
+CVbinary(glm.model)
+```
+The significance of the model is stated below:
+```{r}
+1 - pchisq(7099.6-5958.6,8268-8264)
+```
+
+
+#### Model 2 - Big vs Small Model
+
+##### Big Model:
+
+For the Big model we will consider the same number of independent variables as we did for our Generalized Linear Model.
+```{r}
+glm.big <- glm(target~city_development_index+experience+last_new_job+training_hours,data = job, family = "binomial")
+summary(glm.big)
+```
+
+##### Small Model:
+Since we can see a greate z value for city_development_index and experience. Let's consider these two variables for our small model. Hence, eliminating last_new_job and training_hours from our consideration.
+
+```{r}
+glm.small <- glm(target~city_development_index+experience,data = job,family = "binomial")
+summary(glm.small)
+```
+Plots:
+
+```{r}
+plot(glm.small)
+```
+
+Let's run the anova function to have a look at the Deviance for the models:
+
+```{r}
+anova(glm.small,glm.big, test = 'Chisq')
+```
+F-statistic for both big and small models:
+
+```{r}
+glm.big.sse <- deviance(glm.big)
+glm.big.df <- df.residual(glm.big)
+glm.small.sse <- deviance(glm.small)
+glm.small.df <- df.residual(glm.small)
+glm.mse <- (glm.small.sse-glm.big.sse)/(glm.small.df-glm.big.df)
+glm.big.mse <- glm.big.sse/glm.big.df
+glm.fratio <- glm.mse/glm.big.mse
+```
+The F-statistic ratio of the big vs small model is 6.501943
+
+P-value of F-statistic:
+```{r}
+glm.pval <- 1-pf(glm.fratio,glm.small.df-glm.big.df,glm.big.df)
+```
+
+Let's run the cross validation on both the big and small models to get relevant accuracy of both the models:
+
+```{r}
+CVbinary(glm.big)
+CVbinary(glm.small)
+```
+The accuracy of both the model is similar. Based on this observation we can conclude that the presence of last_new_job and training_hours does not impact the accuracy of the model by much.
+
